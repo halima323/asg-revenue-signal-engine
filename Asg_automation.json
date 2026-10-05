@@ -1,0 +1,861 @@
+{
+  "name": "ASG Revenue Signal Engine - Actabl (v1.0.0)",
+  "nodes": [
+    {
+      "id": "n01",
+      "name": "1. Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -460,
+        300
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "n02",
+      "name": "2. Load CONFIG",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -240,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// ASG Revenue Signal Engine - single source of truth.\n// Swap portfolio company by replacing this object only.\nconst CONFIG = {\n  \"workflow_version\": \"1.0.0\",\n  \"portfolio_company\": \"Actabl\",\n  \"parent_company\": \"Alpine Software Group\",\n  \"mode\": \"DEMO\",\n  \"ai_enabled\": false,\n  \"crm_push_enabled\": false,\n  \"data_use_policy\": {\n    \"allowed\": \"Publicly available information only.\",\n    \"prohibited\": [\n      \"ASG private CRM\",\n      \"Actabl private CRM\",\n      \"private customer lists\",\n      \"private product usage\",\n      \"internal revenue\",\n      \"private pricing\",\n      \"confidential account data\"\n    ],\n    \"labels\": [\n      \"PUBLIC FACT\",\n      \"SIMULATED DATA\",\n      \"AI HYPOTHESIS\"\n    ]\n  },\n  \"icp\": {\n    \"description\": \"Actabl ICP - multi-property hospitality operators, management companies and ownership groups.\",\n    \"max_score\": 25,\n    \"entity_type_points\": {\n      \"hotel management company\": 10,\n      \"hospitality management group\": 10,\n      \"multi-property operator\": 9,\n      \"hotel ownership group\": 8,\n      \"hotel investment/asset manager\": 7,\n      \"brand or franchisor\": 6,\n      \"resort operator\": 8,\n      \"single property\": 2,\n      \"non-hospitality\": 0\n    },\n    \"property_count_points\": [\n      [\n        50,\n        7\n      ],\n      [\n        20,\n        6\n      ],\n      [\n        10,\n        5\n      ],\n      [\n        5,\n        3\n      ],\n      [\n        2,\n        2\n      ],\n      [\n        1,\n        0\n      ]\n    ],\n    \"employee_count_points\": [\n      [\n        1000,\n        4\n      ],\n      [\n        250,\n        3\n      ],\n      [\n        50,\n        2\n      ],\n      [\n        1,\n        1\n      ]\n    ],\n    \"complexity_points\": {\n      \"multi_brand\": 2,\n      \"multi_region\": 2\n    },\n    \"disqualifiers\": [\n      \"non-hospitality\",\n      \"single property with fewer than 25 employees\"\n    ]\n  },\n  \"freshness_bands\": [\n    {\n      \"label\": \"HIGHEST\",\n      \"max_age_days\": 30,\n      \"multiplier\": 1.0,\n      \"points\": 15\n    },\n    {\n      \"label\": \"HIGH\",\n      \"max_age_days\": 90,\n      \"multiplier\": 0.85,\n      \"points\": 12\n    },\n    {\n      \"label\": \"MODERATE\",\n      \"max_age_days\": 180,\n      \"multiplier\": 0.6,\n      \"points\": 8\n    },\n    {\n      \"label\": \"LOW\",\n      \"max_age_days\": 365,\n      \"multiplier\": 0.35,\n      \"points\": 4\n    },\n    {\n      \"label\": \"STALE\",\n      \"max_age_days\": 100000,\n      \"multiplier\": 0.0,\n      \"points\": 0\n    }\n  ],\n  \"ignore_signals_older_than_days\": 365,\n  \"scoring_weights\": {\n    \"icp_fit\": 25,\n    \"signal_strength\": 20,\n    \"signal_freshness\": 15,\n    \"product_fit\": 15,\n    \"expansion_potential\": 10,\n    \"persona_relevance\": 5,\n    \"evidence_quality\": 5,\n    \"research_confidence\": 5\n  },\n  \"priority_bands\": [\n    {\n      \"label\": \"HIGH PRIORITY\",\n      \"min\": 80\n    },\n    {\n      \"label\": \"MEDIUM PRIORITY\",\n      \"min\": 60\n    },\n    {\n      \"label\": \"WATCH\",\n      \"min\": 40\n    },\n    {\n      \"label\": \"LOW PRIORITY\",\n      \"min\": 0\n    }\n  ],\n  \"priority_note\": \"Prioritization labels only. These are not predictions of purchase probability.\",\n  \"products\": [\n    {\n      \"product\": \"ProfitSword\",\n      \"capability\": \"Hospitality business intelligence, budgeting, forecasting and consolidated financial reporting across properties.\",\n      \"signal_map\": [\n        \"ACQUISITION\",\n        \"PORTFOLIO_EXPANSION\",\n        \"RAPID_GROWTH\",\n        \"DATA_ANALYTICS_INITIATIVE\",\n        \"PROFITABILITY_COMMENTARY\",\n        \"OWNERSHIP_CHANGE\",\n        \"EXEC_HIRE_FINANCE\"\n      ]\n    },\n    {\n      \"product\": \"Hotel Effectiveness\",\n      \"capability\": \"Labor management, scheduling and labor-cost control for hotel operators.\",\n      \"signal_map\": [\n        \"LABOR_MANAGEMENT_HIRING\",\n        \"HIRING_SURGE\",\n        \"PROFITABILITY_COMMENTARY\",\n        \"OPERATIONAL_EXPANSION\",\n        \"PORTFOLIO_EXPANSION\",\n        \"EXEC_HIRE_OPERATIONS\",\n        \"PUBLIC_OPERATIONAL_CHALLENGE\"\n      ]\n    },\n    {\n      \"product\": \"Alice\",\n      \"capability\": \"Hotel operations and staff task/service-delivery coordination.\",\n      \"signal_map\": [\n        \"NEW_PROPERTY_OPENING\",\n        \"OPERATIONAL_EXPANSION\",\n        \"EXEC_HIRE_OPERATIONS\",\n        \"PUBLIC_OPERATIONAL_CHALLENGE\",\n        \"TECH_MODERNIZATION\"\n      ]\n    },\n    {\n      \"product\": \"Transcendent\",\n      \"capability\": \"Asset management, preventive maintenance and CapEx lifecycle tracking.\",\n      \"signal_map\": [\n        \"NEW_PROPERTY_OPENING\",\n        \"ACQUISITION\",\n        \"OWNERSHIP_CHANGE\",\n        \"OPERATIONAL_EXPANSION\",\n        \"PUBLIC_OPERATIONAL_CHALLENGE\"\n      ]\n    },\n    {\n      \"product\": \"AI Insights\",\n      \"capability\": \"AI-assisted insight layer on labor and operational performance data.\",\n      \"signal_map\": [\n        \"LABOR_MANAGEMENT_HIRING\",\n        \"PROFITABILITY_COMMENTARY\",\n        \"AI_INITIATIVE\",\n        \"DATA_ANALYTICS_INITIATIVE\",\n        \"RAPID_GROWTH\"\n      ]\n    },\n    {\n      \"product\": \"Altitude\",\n      \"capability\": \"Unified data and analytics experience across hospitality operational and financial data.\",\n      \"signal_map\": [\n        \"DATA_ANALYTICS_INITIATIVE\",\n        \"DIGITAL_TRANSFORMATION\",\n        \"TECH_MODERNIZATION\",\n        \"PORTFOLIO_EXPANSION\",\n        \"AI_INITIATIVE\"\n      ]\n    },\n    {\n      \"product\": \"Data Services\",\n      \"capability\": \"Data integration, migration and data-quality services for hospitality datasets.\",\n      \"signal_map\": [\n        \"DATA_ANALYTICS_INITIATIVE\",\n        \"ACQUISITION\",\n        \"PORTFOLIO_EXPANSION\",\n        \"AI_INITIATIVE\",\n        \"DIGITAL_TRANSFORMATION\",\n        \"TECH_MODERNIZATION\"\n      ]\n    },\n    {\n      \"product\": \"Forward-Deployed Engineering\",\n      \"capability\": \"Embedded engineering for custom data/AI work alongside the customer team.\",\n      \"signal_map\": [\n        \"AI_INITIATIVE\",\n        \"DATA_ANALYTICS_INITIATIVE\",\n        \"DIGITAL_TRANSFORMATION\",\n        \"TECH_MODERNIZATION\"\n      ]\n    }\n  ],\n  \"signal_library\": [\n    {\n      \"signal_name\": \"ACQUISITION\",\n      \"signal_category\": \"Growth / M&A\",\n      \"description\": \"Company publicly announces acquiring a hotel, portfolio, or another management company.\",\n      \"why_it_matters\": \"An acquisition may increase portfolio complexity and create new operational, labor, financial, and data-management requirements across newly added properties.\",\n      \"data_source\": \"Press release, company newsroom, industry publication, public filing\",\n      \"freshness_requirement_days\": 180,\n      \"signal_strength\": 5,\n      \"scoring_weight\": 10,\n      \"recommended_sales_play\": \"Portfolio Expansion\",\n      \"recommended_persona\": \"COO\",\n      \"keywords\": [\n        \"acquisition\",\n        \"acquires\",\n        \"acquired\",\n        \"has acquired\",\n        \"completes acquisition\",\n        \"merger\",\n        \"bolt-on\"\n      ]\n    },\n    {\n      \"signal_name\": \"PORTFOLIO_EXPANSION\",\n      \"signal_category\": \"Growth / M&A\",\n      \"description\": \"Company publicly announces adding properties or growing its managed portfolio.\",\n      \"why_it_matters\": \"Portfolio growth may stretch existing reporting, budgeting, and labor-planning processes designed for a smaller footprint.\",\n      \"data_source\": \"Press release, company newsroom, industry publication\",\n      \"freshness_requirement_days\": 180,\n      \"signal_strength\": 5,\n      \"scoring_weight\": 10,\n      \"recommended_sales_play\": \"Portfolio Expansion\",\n      \"recommended_persona\": \"VP Operations\",\n      \"keywords\": [\n        \"expands portfolio\",\n        \"adds properties\",\n        \"portfolio growth\",\n        \"now manages\",\n        \"grows to\",\n        \"added hotels\",\n        \"management agreement\"\n      ]\n    },\n    {\n      \"signal_name\": \"NEW_PROPERTY_OPENING\",\n      \"signal_category\": \"Growth / Operations\",\n      \"description\": \"Company announces a new hotel opening or takeover of management for a property.\",\n      \"why_it_matters\": \"New openings typically require rapid staffing ramp, service-delivery standards, and asset/CapEx tracking from day one.\",\n      \"data_source\": \"Press release, company newsroom, hospitality publication\",\n      \"freshness_requirement_days\": 120,\n      \"signal_strength\": 4,\n      \"scoring_weight\": 8,\n      \"recommended_sales_play\": \"New Property Expansion\",\n      \"recommended_persona\": \"Property Operations leadership\",\n      \"keywords\": [\n        \"opens\",\n        \"grand opening\",\n        \"new hotel\",\n        \"opening of\",\n        \"breaks ground\",\n        \"assumes management\",\n        \"takes over management\"\n      ]\n    },\n    {\n      \"signal_name\": \"RAPID_GROWTH\",\n      \"signal_category\": \"Growth\",\n      \"description\": \"Company publicly describes rapid or record growth in properties, keys, or revenue.\",\n      \"why_it_matters\": \"Fast growth often outpaces the operational and financial reporting stack that supported the earlier footprint.\",\n      \"data_source\": \"Press release, interview, industry publication\",\n      \"freshness_requirement_days\": 180,\n      \"signal_strength\": 4,\n      \"scoring_weight\": 8,\n      \"recommended_sales_play\": \"Operational Scaling\",\n      \"recommended_persona\": \"COO\",\n      \"keywords\": [\n        \"record growth\",\n        \"fastest-growing\",\n        \"rapid growth\",\n        \"doubled\",\n        \"tripled\",\n        \"record year\",\n        \"significant growth\"\n      ]\n    },\n    {\n      \"signal_name\": \"EXEC_HIRE_OPERATIONS\",\n      \"signal_category\": \"Executive Change\",\n      \"description\": \"Appointment of a COO, VP Operations, or senior operations leader.\",\n      \"why_it_matters\": \"New operations leaders frequently review process, systems, and standardization in their first two quarters.\",\n      \"data_source\": \"Press release, company newsroom, public appointment announcement\",\n      \"freshness_requirement_days\": 120,\n      \"signal_strength\": 4,\n      \"scoring_weight\": 9,\n      \"recommended_sales_play\": \"Executive Change\",\n      \"recommended_persona\": \"COO\",\n      \"keywords\": [\n        \"chief operating officer\",\n        \"named coo\",\n        \"vp of operations\",\n        \"vice president of operations\",\n        \"head of operations\",\n        \"svp operations\"\n      ]\n    },\n    {\n      \"signal_name\": \"EXEC_HIRE_FINANCE\",\n      \"signal_category\": \"Executive Change\",\n      \"description\": \"Appointment of a CFO, VP Finance, or senior finance leader.\",\n      \"why_it_matters\": \"Incoming finance leaders often reassess forecasting, budgeting cadence, and consolidated reporting across properties.\",\n      \"data_source\": \"Press release, company newsroom, public appointment announcement\",\n      \"freshness_requirement_days\": 120,\n      \"signal_strength\": 4,\n      \"scoring_weight\": 9,\n      \"recommended_sales_play\": \"Profitability / BI\",\n      \"recommended_persona\": \"CFO\",\n      \"keywords\": [\n        \"chief financial officer\",\n        \"named cfo\",\n        \"vp of finance\",\n        \"vice president of finance\",\n        \"head of finance\"\n      ]\n    },\n    {\n      \"signal_name\": \"HIRING_SURGE\",\n      \"signal_category\": \"Hiring\",\n      \"description\": \"Elevated volume of open roles on public careers pages relative to company size.\",\n      \"why_it_matters\": \"Concentrated hiring can indicate expansion or turnover pressure, both of which affect labor cost control.\",\n      \"data_source\": \"Public careers page, public job listings\",\n      \"freshness_requirement_days\": 60,\n      \"signal_strength\": 3,\n      \"scoring_weight\": 6,\n      \"recommended_sales_play\": \"Labor Optimization\",\n      \"recommended_persona\": \"VP Operations\",\n      \"keywords\": [\n        \"now hiring\",\n        \"open positions\",\n        \"we are hiring\",\n        \"join our team\",\n        \"multiple openings\",\n        \"hiring across\"\n      ]\n    },\n    {\n      \"signal_name\": \"LABOR_MANAGEMENT_HIRING\",\n      \"signal_category\": \"Hiring / Labor\",\n      \"description\": \"Public roles focused on labor management, scheduling, workforce planning, or payroll analytics.\",\n      \"why_it_matters\": \"Hiring for labor-planning roles suggests labor cost and scheduling accuracy are active management priorities.\",\n      \"data_source\": \"Public careers page, public job listings\",\n      \"freshness_requirement_days\": 60,\n      \"signal_strength\": 5,\n      \"scoring_weight\": 10,\n      \"recommended_sales_play\": \"Labor Optimization\",\n      \"recommended_persona\": \"VP Operations\",\n      \"keywords\": [\n        \"labor management\",\n        \"workforce planning\",\n        \"scheduling manager\",\n        \"labor analyst\",\n        \"payroll analyst\",\n        \"staffing model\"\n      ]\n    },\n    {\n      \"signal_name\": \"OPERATIONAL_EXPANSION\",\n      \"signal_category\": \"Operations\",\n      \"description\": \"New region, new brand segment, new corporate office, or expanded service model.\",\n      \"why_it_matters\": \"Operating in new markets or segments adds standardization and visibility requirements across a less uniform portfolio.\",\n      \"data_source\": \"Press release, company website, industry publication\",\n      \"freshness_requirement_days\": 180,\n      \"signal_strength\": 3,\n      \"scoring_weight\": 7,\n      \"recommended_sales_play\": \"Operational Scaling\",\n      \"recommended_persona\": \"VP Operations\",\n      \"keywords\": [\n        \"expands into\",\n        \"new market\",\n        \"enters the\",\n        \"new region\",\n        \"new division\",\n        \"new corporate office\",\n        \"launches division\"\n      ]\n    },\n    {\n      \"signal_name\": \"TECH_MODERNIZATION\",\n      \"signal_category\": \"Technology\",\n      \"description\": \"Publicly announced system replacement, PMS migration, or technology stack upgrade.\",\n      \"why_it_matters\": \"Active modernization projects indicate budget, sponsorship, and willingness to change systems.\",\n      \"data_source\": \"Press release, technology page, industry publication\",\n      \"freshness_requirement_days\": 120,\n      \"signal_strength\": 4,\n      \"scoring_weight\": 9,\n      \"recommended_sales_play\": \"Technology Consolidation\",\n      \"recommended_persona\": \"IT leadership\",\n      \"keywords\": [\n        \"migration\",\n        \"replaces legacy\",\n        \"technology upgrade\",\n        \"new pms\",\n        \"modernize\",\n        \"modernization\",\n        \"system implementation\",\n        \"rolls out platform\"\n      ]\n    },\n    {\n      \"signal_name\": \"DATA_ANALYTICS_INITIATIVE\",\n      \"signal_category\": \"Data\",\n      \"description\": \"Public commentary about data centralization, business intelligence, dashboards, or reporting programs.\",\n      \"why_it_matters\": \"Stated analytics ambition usually coexists with fragmented source systems across property-level operations.\",\n      \"data_source\": \"Press release, interview, technology page, conference session\",\n      \"freshness_requirement_days\": 180,\n      \"signal_strength\": 4,\n      \"scoring_weight\": 9,\n      \"recommended_sales_play\": \"Data Modernization\",\n      \"recommended_persona\": \"Data/Analytics leadership\",\n      \"keywords\": [\n        \"business intelligence\",\n        \"data warehouse\",\n        \"centralize data\",\n        \"single source of truth\",\n        \"analytics initiative\",\n        \"dashboards\",\n        \"data strategy\",\n        \"reporting platform\"\n      ]\n    },\n    {\n      \"signal_name\": \"AI_INITIATIVE\",\n      \"signal_category\": \"AI\",\n      \"description\": \"Public statements about adopting, piloting, or investing in AI capabilities.\",\n      \"why_it_matters\": \"An AI mandate creates demand for clean, consolidated operational and financial data before value can be realized.\",\n      \"data_source\": \"Press release, interview, conference session, technology page\",\n      \"freshness_requirement_days\": 180,\n      \"signal_strength\": 4,\n      \"scoring_weight\": 9,\n      \"recommended_sales_play\": \"AI Transformation\",\n      \"recommended_persona\": \"Data/Analytics leadership\",\n      \"keywords\": [\n        \"artificial intelligence\",\n        \" ai \",\n        \"ai-powered\",\n        \"machine learning\",\n        \"ai strategy\",\n        \"ai pilot\",\n        \"generative ai\"\n      ]\n    },\n    {\n      \"signal_name\": \"DIGITAL_TRANSFORMATION\",\n      \"signal_category\": \"Technology\",\n      \"description\": \"Formal digital transformation program or appointment of a transformation leader.\",\n      \"why_it_matters\": \"Transformation programs carry executive sponsorship and defined timelines for systems decisions.\",\n      \"data_source\": \"Press release, company newsroom, industry publication\",\n      \"freshness_requirement_days\": 180,\n      \"signal_strength\": 3,\n      \"scoring_weight\": 7,\n      \"recommended_sales_play\": \"Data Modernization\",\n      \"recommended_persona\": \"IT leadership\",\n      \"keywords\": [\n        \"digital transformation\",\n        \"transformation program\",\n        \"digital strategy\",\n        \"chief digital\"\n      ]\n    },\n    {\n      \"signal_name\": \"PUBLIC_OPERATIONAL_CHALLENGE\",\n      \"signal_category\": \"Operations\",\n      \"description\": \"Public discussion of operational pain: staffing shortages, service consistency, maintenance backlog, or manual processes.\",\n      \"why_it_matters\": \"Publicly acknowledged operational friction is a stated problem the buyer has already articulated.\",\n      \"data_source\": \"Interview, industry publication, earnings commentary\",\n      \"freshness_requirement_days\": 120,\n      \"signal_strength\": 4,\n      \"scoring_weight\": 9,\n      \"recommended_sales_play\": \"Operational Scaling\",\n      \"recommended_persona\": \"COO\",\n      \"keywords\": [\n        \"staffing shortage\",\n        \"labor shortage\",\n        \"manual process\",\n        \"spreadsheets\",\n        \"service consistency\",\n        \"maintenance backlog\",\n        \"operational challenges\",\n        \"turnover\"\n      ]\n    },\n    {\n      \"signal_name\": \"OWNERSHIP_CHANGE\",\n      \"signal_category\": \"Ownership\",\n      \"description\": \"Change in ownership, new investor, recapitalization, or new management company assignment.\",\n      \"why_it_matters\": \"Ownership transitions frequently trigger reporting standard changes and renewed scrutiny of property-level performance.\",\n      \"data_source\": \"Press release, public filing, industry publication\",\n      \"freshness_requirement_days\": 180,\n      \"signal_strength\": 4,\n      \"scoring_weight\": 8,\n      \"recommended_sales_play\": \"Executive Change\",\n      \"recommended_persona\": \"CFO\",\n      \"keywords\": [\n        \"new ownership\",\n        \"acquired by\",\n        \"recapitalization\",\n        \"investment from\",\n        \"majority stake\",\n        \"new management company\",\n        \"ownership group\"\n      ]\n    },\n    {\n      \"signal_name\": \"PROFITABILITY_COMMENTARY\",\n      \"signal_category\": \"Financial\",\n      \"description\": \"Public commentary about margins, profitability pressure, forecasting accuracy, or cost control.\",\n      \"why_it_matters\": \"Margin and forecasting commentary indicates active executive attention to financial visibility across properties.\",\n      \"data_source\": \"Interview, earnings commentary, industry publication\",\n      \"freshness_requirement_days\": 120,\n      \"signal_strength\": 5,\n      \"scoring_weight\": 10,\n      \"recommended_sales_play\": \"Profitability / BI\",\n      \"recommended_persona\": \"CFO\",\n      \"keywords\": [\n        \"margin pressure\",\n        \"profitability\",\n        \"cost control\",\n        \"forecasting\",\n        \"flow-through\",\n        \"gop\",\n        \"expense management\",\n        \"budget accuracy\"\n      ]\n    }\n  ],\n  \"sales_plays\": [\n    {\n      \"play_name\": \"Portfolio Expansion\",\n      \"trigger\": \"ACQUISITION or PORTFOLIO_EXPANSION signal within freshness window\",\n      \"qualification_rules\": [\n        \"icp_score >= 12\",\n        \"property_count >= 5\",\n        \"signal age <= 180 days\",\n        \"evidence has source_url and source_date\"\n      ],\n      \"recommended_persona\": \"COO\",\n      \"business_problem\": \"Newly added properties may not roll into existing budgeting, labor and reporting processes without manual effort.\",\n      \"product_fit\": [\n        \"ProfitSword\",\n        \"Hotel Effectiveness\",\n        \"Data Services\",\n        \"AI Insights\"\n      ],\n      \"messaging_angle\": \"Reference the announced portfolio change and the operational consolidation work that usually follows.\",\n      \"cta\": \"Offer a 15-minute walkthrough of how multi-property operators consolidate reporting after portfolio changes.\",\n      \"next_action\": \"Research COO/VP Ops on public sources, then sequence 3-touch outbound referencing the announcement.\"\n    },\n    {\n      \"play_name\": \"Operational Scaling\",\n      \"trigger\": \"RAPID_GROWTH, OPERATIONAL_EXPANSION or PUBLIC_OPERATIONAL_CHALLENGE\",\n      \"qualification_rules\": [\n        \"icp_score >= 10\",\n        \"property_count >= 3\",\n        \"signal age <= 180 days\"\n      ],\n      \"recommended_persona\": \"VP Operations\",\n      \"business_problem\": \"Processes built for a smaller footprint may not scale to a larger or more varied portfolio.\",\n      \"product_fit\": [\n        \"Alice\",\n        \"Hotel Effectiveness\",\n        \"ProfitSword\",\n        \"Transcendent\"\n      ],\n      \"messaging_angle\": \"Anchor on the growth statement, not on a product pitch.\",\n      \"cta\": \"Offer an operational-visibility benchmark conversation.\",\n      \"next_action\": \"Add to sequenced outbound; flag for AE review if property_count >= 20.\"\n    },\n    {\n      \"play_name\": \"Labor Optimization\",\n      \"trigger\": \"LABOR_MANAGEMENT_HIRING or HIRING_SURGE or labor-cost commentary\",\n      \"qualification_rules\": [\n        \"icp_score >= 10\",\n        \"signal age <= 60 days\",\n        \"at least one labor-category signal\"\n      ],\n      \"recommended_persona\": \"VP Operations\",\n      \"business_problem\": \"Labor cost and scheduling accuracy may be managed property-by-property rather than centrally.\",\n      \"product_fit\": [\n        \"Hotel Effectiveness\",\n        \"AI Insights\"\n      ],\n      \"messaging_angle\": \"Reference the specific public roles or labor commentary observed.\",\n      \"cta\": \"Offer a short labor-standard benchmarking discussion.\",\n      \"next_action\": \"Route to labor-focused sequence; capture job-post URLs as evidence.\"\n    },\n    {\n      \"play_name\": \"Profitability / BI\",\n      \"trigger\": \"PROFITABILITY_COMMENTARY or EXEC_HIRE_FINANCE\",\n      \"qualification_rules\": [\n        \"icp_score >= 10\",\n        \"signal age <= 120 days\",\n        \"persona resolves to finance\"\n      ],\n      \"recommended_persona\": \"CFO\",\n      \"business_problem\": \"Consolidated forecasting and flow-through visibility across properties may rely on manual assembly.\",\n      \"product_fit\": [\n        \"ProfitSword\",\n        \"AI Insights\",\n        \"Altitude\"\n      ],\n      \"messaging_angle\": \"Anchor on the public financial or leadership statement.\",\n      \"cta\": \"Offer a forecasting-cadence comparison with similar-sized operators.\",\n      \"next_action\": \"Finance-persona sequence; note fiscal timing in CRM.\"\n    },\n    {\n      \"play_name\": \"Data Modernization\",\n      \"trigger\": \"DATA_ANALYTICS_INITIATIVE or DIGITAL_TRANSFORMATION\",\n      \"qualification_rules\": [\n        \"icp_score >= 10\",\n        \"signal age <= 180 days\",\n        \"evidence quality >= 0.6\"\n      ],\n      \"recommended_persona\": \"Data/Analytics leadership\",\n      \"business_problem\": \"Operational, labor and financial data may sit in separate systems, limiting consolidated analysis.\",\n      \"product_fit\": [\n        \"Altitude\",\n        \"Data Services\",\n        \"ProfitSword\"\n      ],\n      \"messaging_angle\": \"Reference the stated data or transformation program.\",\n      \"cta\": \"Offer a short architecture conversation on hospitality data consolidation.\",\n      \"next_action\": \"Route to technical-buyer sequence; involve solutions engineering.\"\n    },\n    {\n      \"play_name\": \"AI Transformation\",\n      \"trigger\": \"AI_INITIATIVE\",\n      \"qualification_rules\": [\n        \"icp_score >= 10\",\n        \"signal age <= 180 days\"\n      ],\n      \"recommended_persona\": \"Data/Analytics leadership\",\n      \"business_problem\": \"AI ambitions typically depend on consolidated, reliable operational data.\",\n      \"product_fit\": [\n        \"AI Insights\",\n        \"Forward-Deployed Engineering\",\n        \"Data Services\",\n        \"Altitude\"\n      ],\n      \"messaging_angle\": \"Reference the public AI statement and the data foundation it implies.\",\n      \"cta\": \"Offer a discussion on data readiness for AI use cases in hotel operations.\",\n      \"next_action\": \"Technical-buyer sequence; flag for Forward-Deployed Engineering review.\"\n    },\n    {\n      \"play_name\": \"Technology Consolidation\",\n      \"trigger\": \"TECH_MODERNIZATION\",\n      \"qualification_rules\": [\n        \"icp_score >= 10\",\n        \"signal age <= 120 days\"\n      ],\n      \"recommended_persona\": \"IT leadership\",\n      \"business_problem\": \"Migration projects often surface overlapping tools and integration gaps across properties.\",\n      \"product_fit\": [\n        \"Altitude\",\n        \"Data Services\",\n        \"Alice\",\n        \"Forward-Deployed Engineering\"\n      ],\n      \"messaging_angle\": \"Reference the migration or modernization announcement.\",\n      \"cta\": \"Offer an integration-scoping conversation.\",\n      \"next_action\": \"IT-persona sequence; capture current stack notes from public pages.\"\n    },\n    {\n      \"play_name\": \"Executive Change\",\n      \"trigger\": \"EXEC_HIRE_OPERATIONS, EXEC_HIRE_FINANCE or OWNERSHIP_CHANGE\",\n      \"qualification_rules\": [\n        \"signal age <= 120 days\",\n        \"named role is operations, finance or ownership\"\n      ],\n      \"recommended_persona\": \"COO\",\n      \"business_problem\": \"New leadership often reviews systems and reporting standards early in tenure.\",\n      \"product_fit\": [\n        \"ProfitSword\",\n        \"Hotel Effectiveness\",\n        \"Altitude\"\n      ],\n      \"messaging_angle\": \"Congratulate factually on the announced appointment, then reference the operational question it raises.\",\n      \"cta\": \"Offer a first-90-days operational visibility conversation.\",\n      \"next_action\": \"Time-boxed sequence within 60 days of announcement.\"\n    },\n    {\n      \"play_name\": \"New Property Expansion\",\n      \"trigger\": \"NEW_PROPERTY_OPENING\",\n      \"qualification_rules\": [\n        \"icp_score >= 8\",\n        \"signal age <= 120 days\"\n      ],\n      \"recommended_persona\": \"Property Operations leadership\",\n      \"business_problem\": \"New openings require fast staffing ramp, service standards and asset tracking.\",\n      \"product_fit\": [\n        \"Alice\",\n        \"Transcendent\",\n        \"Hotel Effectiveness\"\n      ],\n      \"messaging_angle\": \"Reference the specific opening and the ramp period.\",\n      \"cta\": \"Offer a pre-opening operations checklist conversation.\",\n      \"next_action\": \"Short sequence timed to opening date.\"\n    },\n    {\n      \"play_name\": \"Re-engagement\",\n      \"trigger\": \"ICP qualified but no fresh signal, or signals failed validation\",\n      \"qualification_rules\": [\n        \"icp_score >= 10\",\n        \"no valid signal within 180 days\"\n      ],\n      \"recommended_persona\": \"VP Operations\",\n      \"business_problem\": \"No public trigger detected; account remains ICP-relevant for monitoring.\",\n      \"product_fit\": [],\n      \"messaging_angle\": \"No outreach recommended until a validated public signal appears.\",\n      \"cta\": \"None - monitor only.\",\n      \"next_action\": \"Add to monitoring audience; re-run signal scan in 30 days.\"\n    }\n  ],\n  \"personas\": [\n    \"CEO\",\n    \"COO\",\n    \"CFO\",\n    \"VP Operations\",\n    \"VP Revenue\",\n    \"VP Sales\",\n    \"VP Finance\",\n    \"Revenue Operations\",\n    \"IT leadership\",\n    \"Data/Analytics leadership\",\n    \"Property Operations leadership\"\n  ],\n  \"persona_map\": {\n    \"ACQUISITION\": \"COO\",\n    \"PORTFOLIO_EXPANSION\": \"VP Operations\",\n    \"NEW_PROPERTY_OPENING\": \"Property Operations leadership\",\n    \"RAPID_GROWTH\": \"COO\",\n    \"EXEC_HIRE_OPERATIONS\": \"COO\",\n    \"EXEC_HIRE_FINANCE\": \"CFO\",\n    \"HIRING_SURGE\": \"VP Operations\",\n    \"LABOR_MANAGEMENT_HIRING\": \"VP Operations\",\n    \"OPERATIONAL_EXPANSION\": \"VP Operations\",\n    \"TECH_MODERNIZATION\": \"IT leadership\",\n    \"DATA_ANALYTICS_INITIATIVE\": \"Data/Analytics leadership\",\n    \"AI_INITIATIVE\": \"Data/Analytics leadership\",\n    \"DIGITAL_TRANSFORMATION\": \"IT leadership\",\n    \"PUBLIC_OPERATIONAL_CHALLENGE\": \"COO\",\n    \"OWNERSHIP_CHANGE\": \"CFO\",\n    \"PROFITABILITY_COMMENTARY\": \"CFO\"\n  },\n  \"problem_map\": {\n    \"ACQUISITION\": \"a larger and less uniform portfolio may need consolidated operational, labor and financial visibility sooner than the current process supports\",\n    \"PORTFOLIO_EXPANSION\": \"reporting and labor planning built for the previous footprint may require manual effort as properties are added\",\n    \"NEW_PROPERTY_OPENING\": \"opening ramp may depend on manual staffing plans and service standards until systems are in place\",\n    \"RAPID_GROWTH\": \"growth may be outpacing the reporting and labor-planning stack that supported the earlier footprint\",\n    \"EXEC_HIRE_OPERATIONS\": \"a new operations leader may be evaluating standardization and cross-property visibility\",\n    \"EXEC_HIRE_FINANCE\": \"a new finance leader may be reassessing forecasting cadence and consolidated reporting\",\n    \"HIRING_SURGE\": \"concentrated hiring may increase pressure on labor cost control and scheduling accuracy\",\n    \"LABOR_MANAGEMENT_HIRING\": \"labor planning may currently be handled property-by-property rather than against central standards\",\n    \"OPERATIONAL_EXPANSION\": \"a broader operating footprint may require more standardized operational processes\",\n    \"TECH_MODERNIZATION\": \"a migration may surface integration gaps and overlapping systems across properties\",\n    \"DATA_ANALYTICS_INITIATIVE\": \"operational, labor and financial data may sit in separate systems, limiting consolidated analysis\",\n    \"AI_INITIATIVE\": \"AI objectives may depend on consolidated and reliable operational data\",\n    \"DIGITAL_TRANSFORMATION\": \"a transformation program may require a consolidated data foundation across properties\",\n    \"PUBLIC_OPERATIONAL_CHALLENGE\": \"publicly described operational friction may persist without centralized visibility\",\n    \"OWNERSHIP_CHANGE\": \"new ownership may introduce different reporting standards and performance scrutiny\",\n    \"PROFITABILITY_COMMENTARY\": \"margin and forecasting attention may be limited by fragmented property-level data\"\n  },\n  \"ai\": {\n    \"endpoint\": \"https://api.openai.com/v1/chat/completions\",\n    \"model\": \"gpt-4o-mini\",\n    \"temperature\": 0.2,\n    \"system_prompt\": \"You are a GTM research analyst supporting Actabl, a hospitality technology company in the Alpine Software Group portfolio. You analyse ONLY the public evidence supplied in the user message. You never use private CRM data, private customer lists, private usage data, internal revenue or confidential pricing, and you never claim access to any of these. You must separate FACT from HYPOTHESIS. A FACT is restated directly from supplied evidence and must be traceable to a source_url. A HYPOTHESIS is an inference and must be written with hedged language such as 'may', 'could' or 'public evidence suggests'. You must NEVER write that a company needs Actabl or any Actabl product. Use the phrase 'public evidence suggests a potential fit worth investigating'. Product relevance is always described as POTENTIAL PRODUCT FIT, never as a customer need. Never fabricate personal details, names, quotes, dates, URLs or metrics. If evidence is insufficient, lower the confidence value. personalization_angle must be 80 words or fewer and follow: observable signal, why it may matter, relevant Actabl capability, low-friction CTA. Return ONLY a single JSON object with exactly these keys: company_name, company_website, icp_score, signals, strongest_signal, why_now, business_problem_hypothesis, potential_actabl_fit, recommended_persona, recommended_sales_play, personalization_angle, recommended_next_action, evidence, confidence. No markdown, no commentary.\"\n  },\n  \"endpoints\": {\n    \"research_webhook\": \"CLAY_WEBHOOK_URL_REQUIRED\",\n    \"crm_webhook\": \"CRM_WEBHOOK_URL_REQUIRED\",\n    \"mcp_integration_points\": [\n      \"CRM lookup: MCP_CRM_TOOL_REQUIRED\",\n      \"Company research: MCP_RESEARCH_TOOL_REQUIRED\",\n      \"Account enrichment: MCP_ENRICHMENT_TOOL_REQUIRED\",\n      \"Web research: MCP_WEB_TOOL_REQUIRED\",\n      \"Opportunity creation: MCP_OPPORTUNITY_TOOL_REQUIRED\"\n    ]\n  },\n  \"live_companies\": [],\n  \"outreach\": {\n    \"max_words\": 80,\n    \"banned_phrases\": [\n      \"I noticed you're doing amazing work\",\n      \"big fan of what you're building\",\n      \"hope this email finds you well\",\n      \"you need\"\n    ]\n  }\n};\nreturn [{ json: { config: CONFIG } }];\n"
+      },
+      "notes": "2. Load CONFIG",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "n03",
+      "name": "3. Load Accounts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -20,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\nconst CONFIG = $('2. Load CONFIG').first().json.config;\nconst DEMO = [\n  {\n    \"company_name\": \"Harborline Hotel Group\",\n    \"website\": \"https://harborline-hotels.example.com\",\n    \"industry\": \"Hotel Management Company\",\n    \"entity_type\": \"hotel management company\",\n    \"employee_count\": 2400,\n    \"property_count\": 41,\n    \"multi_brand\": true,\n    \"multi_region\": true,\n    \"location\": \"Charleston, SC, USA\",\n    \"days_ago\": 12,\n    \"current_product\": \"UNKNOWN / NOT PUBLIC\",\n    \"signal_title\": \"Harborline Hotel Group completes acquisition of 9-property Sandpiper portfolio\",\n    \"signal_url\": \"https://harborline-hotels.example.com/news/sandpiper-acquisition\",\n    \"signal_text\": \"Harborline Hotel Group announced it has acquired the Sandpiper portfolio, adding nine select-service hotels and bringing the managed portfolio to 41 properties across three regions.\"\n  },\n  {\n    \"company_name\": \"Cedar & Bay Hospitality, LLC\",\n    \"website\": \"https://cedarandbay.example.com\",\n    \"industry\": \"Hospitality Management Group\",\n    \"entity_type\": \"hospitality management group\",\n    \"employee_count\": 900,\n    \"property_count\": 18,\n    \"multi_brand\": true,\n    \"multi_region\": false,\n    \"location\": \"Portland, OR, USA\",\n    \"days_ago\": 26,\n    \"current_product\": \"UNKNOWN / NOT PUBLIC\",\n    \"signal_title\": \"Cedar & Bay Hospitality names new Chief Operating Officer\",\n    \"signal_url\": \"https://cedarandbay.example.com/newsroom/new-coo\",\n    \"signal_text\": \"Cedar & Bay Hospitality announced the appointment of a new Chief Operating Officer, who will lead operations standardization across the company's 18 managed hotels.\"\n  },\n  {\n    \"company_name\": \"Northwind Lodging Partners Inc.\",\n    \"website\": \"https://northwindlodging.example.com\",\n    \"industry\": \"Hotel Management Company\",\n    \"entity_type\": \"hotel management company\",\n    \"employee_count\": 3100,\n    \"property_count\": 63,\n    \"multi_brand\": true,\n    \"multi_region\": true,\n    \"location\": \"Minneapolis, MN, USA\",\n    \"days_ago\": 44,\n    \"current_product\": \"UNKNOWN / NOT PUBLIC\",\n    \"signal_title\": \"Northwind executives discuss margin pressure and labor cost control at industry panel\",\n    \"signal_url\": \"https://hospitality-journal.example.com/northwind-margin-panel\",\n    \"signal_text\": \"Leaders from Northwind Lodging Partners discussed margin pressure, labor cost control and forecasting accuracy across a 63-hotel portfolio, noting that budget accuracy varies between properties.\"\n  },\n  {\n    \"company_name\": \"Sablewood Hotel Management\",\n    \"website\": \"https://sablewoodhm.example.com\",\n    \"industry\": \"Hotel Management Company\",\n    \"entity_type\": \"hotel management company\",\n    \"employee_count\": 1200,\n    \"property_count\": 27,\n    \"multi_brand\": false,\n    \"multi_region\": true,\n    \"location\": \"Dallas, TX, USA\",\n    \"days_ago\": 63,\n    \"current_product\": \"UNKNOWN / NOT PUBLIC\",\n    \"signal_title\": \"Sablewood launches centralized business intelligence program\",\n    \"signal_url\": \"https://sablewoodhm.example.com/news/bi-program\",\n    \"signal_text\": \"Sablewood Hotel Management described an analytics initiative intended to centralize data from property systems into a single source of truth for operational and financial dashboards.\"\n  },\n  {\n    \"company_name\": \"Lantern Peak Hospitality\",\n    \"website\": \"https://lanternpeak.example.com\",\n    \"industry\": \"Resort Operator\",\n    \"entity_type\": \"resort operator\",\n    \"employee_count\": 480,\n    \"property_count\": 9,\n    \"multi_brand\": false,\n    \"multi_region\": false,\n    \"location\": \"Denver, CO, USA\",\n    \"days_ago\": 9,\n    \"current_product\": \"UNKNOWN / NOT PUBLIC\",\n    \"signal_title\": \"Lantern Peak announces grand opening of two new mountain properties\",\n    \"signal_url\": \"https://lanternpeak.example.com/press/new-hotel-openings\",\n    \"signal_text\": \"Lantern Peak Hospitality announced the opening of two new hotels this season and said it is hiring across both properties ahead of the winter ramp.\"\n  },\n  {\n    \"company_name\": \"Ironbridge Hotel Ventures\",\n    \"website\": \"https://ironbridgeventures.example.com\",\n    \"industry\": \"Hotel Ownership Group\",\n    \"entity_type\": \"hotel ownership group\",\n    \"employee_count\": 140,\n    \"property_count\": 34,\n    \"multi_brand\": true,\n    \"multi_region\": true,\n    \"location\": \"Chicago, IL, USA\",\n    \"days_ago\": 101,\n    \"current_product\": \"UNKNOWN / NOT PUBLIC\",\n    \"signal_title\": \"Ironbridge announces recapitalization and new ownership structure\",\n    \"signal_url\": \"\",\n    \"signal_text\": \"Ironbridge Hotel Ventures announced a recapitalization with investment from a new majority partner, and said reporting standards across its 34 owned hotels will be reviewed.\"\n  },\n  {\n    \"company_name\": \"Marisol Coastal Resorts\",\n    \"website\": \"https://marisolcoastal.example.com\",\n    \"industry\": \"Resort Operator\",\n    \"entity_type\": \"resort operator\",\n    \"employee_count\": 760,\n    \"property_count\": 12,\n    \"multi_brand\": false,\n    \"multi_region\": false,\n    \"location\": \"Tampa, FL, USA\",\n    \"days_ago\": 18,\n    \"current_product\": \"UNKNOWN / NOT PUBLIC\",\n    \"signal_title\": \"Marisol Coastal Resorts outlines AI strategy for guest operations\",\n    \"signal_url\": \"https://marisolcoastal.example.com/newsroom/ai-strategy\",\n    \"signal_text\": \"Marisol Coastal Resorts outlined an AI strategy and a first machine learning pilot focused on guest operations, noting that data currently sits across several property systems.\"\n  },\n  {\n    \"company_name\": \"Kestrel Hospitality Group\",\n    \"website\": \"https://kestrelhg.example.com\",\n    \"industry\": \"Hotel Management Company\",\n    \"entity_type\": \"hotel management company\",\n    \"employee_count\": 2800,\n    \"property_count\": 52,\n    \"multi_brand\": true,\n    \"multi_region\": true,\n    \"location\": \"Atlanta, GA, USA\",\n    \"days_ago\": 5,\n    \"current_product\": \"UNKNOWN / NOT PUBLIC\",\n    \"signal_title\": \"Kestrel Hospitality Group careers page lists corporate labor management roles\",\n    \"signal_url\": \"https://kestrelhg.example.com/careers\",\n    \"signal_text\": \"Kestrel Hospitality Group is hiring across multiple corporate roles including a Labor Analyst and a Director of Workforce Planning, with responsibility for the staffing model across 52 hotels.\"\n  },\n  {\n    \"company_name\": \"Bellhaven Hotel Partners\",\n    \"website\": \"https://bellhavenpartners.example.com\",\n    \"industry\": \"Hospitality Management Group\",\n    \"entity_type\": \"hospitality management group\",\n    \"employee_count\": 210,\n    \"property_count\": 6,\n    \"multi_brand\": false,\n    \"multi_region\": false,\n    \"location\": \"Nashville, TN, USA\",\n    \"days_ago\": 320,\n    \"current_product\": \"UNKNOWN / NOT PUBLIC\",\n    \"signal_title\": \"Bellhaven expands portfolio with three new management agreements\",\n    \"signal_url\": \"https://bellhavenpartners.example.com/news/management-agreements\",\n    \"signal_text\": \"Bellhaven Hotel Partners said it has added properties through three new management agreements and now manages six hotels in the southeastern United States.\"\n  },\n  {\n    \"company_name\": \"Quarry Ridge Hotels\",\n    \"website\": \"https://quarryridgehotels.example.com\",\n    \"industry\": \"Hotel Management Company\",\n    \"entity_type\": \"hotel management company\",\n    \"employee_count\": 1050,\n    \"property_count\": 21,\n    \"multi_brand\": false,\n    \"multi_region\": true,\n    \"location\": \"Phoenix, AZ, USA\",\n    \"days_ago\": 77,\n    \"current_product\": \"UNKNOWN / NOT PUBLIC\",\n    \"signal_title\": \"Quarry Ridge begins property management system migration\",\n    \"signal_url\": \"https://quarryridgehotels.example.com/news/pms-migration\",\n    \"signal_text\": \"Quarry Ridge Hotels began a new PMS migration and technology upgrade program, replacing legacy systems across its 21 hotels over the next four quarters.\"\n  }\n];\nconst now = new Date();\nfunction daysAgoISO(d){ return new Date(now.getTime() - (Number(d)*86400000)).toISOString().slice(0,10); }\n\nlet rows = [];\nif (CONFIG.mode === \"LIVE\") {\n  rows = (CONFIG.live_companies || []).map(function(c){\n    const o = Object.assign({}, c);\n    o.data_label = \"LIVE INPUT\";\n    o.evidence_label = \"PUBLIC FACT (pending validation)\";\n    return o;\n  });\n} else {\n  rows = DEMO.map(function(c){\n    const o = Object.assign({}, c);\n    o.signal_date = daysAgoISO(c.days_ago);\n    o.data_label = \"DEMO DATA - NOT ASG CUSTOMER DATA\";\n    o.evidence_label = \"SIMULATED DATA\";\n    delete o.days_ago;\n    return o;\n  });\n}\n\nif (!rows.length) {\n  return [{ json: { status: \"REQUIRES_REVIEW\", review_reasons: [\"NO_INPUT_ACCOUNTS\"],\n    note: \"LIVE mode selected but CONFIG.live_companies is empty. Add companies in node 2.\",\n    run_mode: CONFIG.mode, workflow_version: CONFIG.workflow_version } }];\n}\n\nreturn rows.map(function(r){\n  return { json: Object.assign({ run_mode: CONFIG.mode, workflow_version: CONFIG.workflow_version,\n    research_date: new Date().toISOString(), status: \"OK\", review_reasons: [] }, r) };\n});\n"
+      },
+      "notes": "3. Load Accounts",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "n04",
+      "name": "4. Normalize + Deduplicate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\nconst TITLE_MAP = {\n  \"chief executive officer\":\"CEO\",\"chief operating officer\":\"COO\",\"chief financial officer\":\"CFO\",\n  \"chief information officer\":\"IT leadership\",\"chief technology officer\":\"IT leadership\",\n  \"vice president of operations\":\"VP Operations\",\"vp of operations\":\"VP Operations\",\n  \"vice president of finance\":\"VP Finance\",\"vp of finance\":\"VP Finance\",\n  \"vice president of revenue\":\"VP Revenue\",\"vp of revenue\":\"VP Revenue\"\n};\n\nfunction cleanName(n){ return String(n||\"\").replace(/\\s+/g,\" \").trim(); }\nfunction nameKey(n){\n  return cleanName(n).toLowerCase()\n    .replace(/[.,&]/g,\" \")\n    .replace(/\\b(inc|llc|ltd|lp|plc|corp|corporation|company|co)\\b/g,\" \")\n    .replace(/\\s+/g,\" \").trim();\n}\nfunction normDomain(w){\n  return String(w||\"\").toLowerCase().trim()\n    .replace(/^https?:\\/\\//,\"\").replace(/^www\\./,\"\").replace(/\\/.*$/,\"\").replace(/\\s/g,\"\");\n}\nfunction normDate(d){\n  if(!d) return \"\";\n  const t = new Date(d);\n  return isNaN(t.getTime()) ? \"\" : t.toISOString().slice(0,10);\n}\nfunction normTitle(t){\n  const raw = String(t||\"\").replace(/\\s+/g,\" \").trim();\n  const key = raw.toLowerCase();\n  return TITLE_MAP[key] || raw;\n}\n\nconst seen = {};\nconst out = [];\n\nfor (const item of $input.all()) {\n  const j = item.json;\n  const reasons = Array.isArray(j.review_reasons) ? j.review_reasons.slice() : [];\n  const company_name = cleanName(j.company_name);\n  const domain = normDomain(j.website);\n\n  if (!company_name) reasons.push(\"MISSING_COMPANY_NAME\");\n  if (!domain) reasons.push(\"MISSING_WEBSITE\");\n\n  const key = domain || nameKey(company_name);\n  if (!key) { continue; }\n\n  const rec = {\n    company_name: company_name || \"UNKNOWN\",\n    company_key: key,\n    website: domain ? (\"https://\" + domain) : \"\",\n    domain: domain,\n    industry: cleanName(j.industry) || \"UNKNOWN\",\n    entity_type: String(j.entity_type||\"\").toLowerCase().trim() || \"unknown\",\n    employee_count: Number(j.employee_count) || 0,\n    property_count: Number(j.property_count) || 0,\n    multi_brand: Boolean(j.multi_brand),\n    multi_region: Boolean(j.multi_region),\n    location: cleanName(j.location) || \"UNKNOWN\",\n    current_product: j.current_product || \"UNKNOWN / NOT PUBLIC\",\n    data_label: j.data_label || \"UNLABELLED\",\n    evidence_label: j.evidence_label || \"UNLABELLED\",\n    run_mode: j.run_mode,\n    workflow_version: j.workflow_version,\n    research_date: j.research_date || new Date().toISOString(),\n    seed_signal: {\n      title: cleanName(j.signal_title),\n      url: String(j.signal_url||\"\").trim(),\n      text: cleanName(j.signal_text),\n      date: normDate(j.signal_date)\n    },\n    normalized_title_example: normTitle(j.decision_maker_title),\n    status: reasons.length ? \"REQUIRES_REVIEW\" : \"OK\",\n    review_reasons: reasons\n  };\n\n  if (seen[key] !== undefined) {\n    const prev = out[seen[key]];\n    prev.duplicate_merged = (prev.duplicate_merged || 0) + 1;\n    if (rec.property_count > prev.property_count) prev.property_count = rec.property_count;\n    if (rec.employee_count > prev.employee_count) prev.employee_count = rec.employee_count;\n    continue;\n  }\n  seen[key] = out.length;\n  out.push(rec);\n}\n\nif (!out.length) {\n  return [{ json: { status:\"REQUIRES_REVIEW\", review_reasons:[\"NO_VALID_ACCOUNTS_AFTER_NORMALIZATION\"] } }];\n}\nreturn out.map(function(o){ return { json:o }; });\n"
+      },
+      "notes": "4. Normalize + Deduplicate",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "n05",
+      "name": "5. ICP Scoring",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\nconst CONFIG = $('2. Load CONFIG').first().json.config;\nconst ICP = CONFIG.icp;\n\nfunction bandPoints(value, table){\n  for (const row of table) { if (Number(value) >= row[0]) return row[1]; }\n  return 0;\n}\n\nreturn $input.all().map(function(item){\n  const j = JSON.parse(JSON.stringify(item.json));\n  const reasons = Array.isArray(j.review_reasons) ? j.review_reasons.slice() : [];\n  const breakdown = [];\n\n  const etPts = ICP.entity_type_points[j.entity_type] !== undefined ? ICP.entity_type_points[j.entity_type] : 0;\n  breakdown.push({ rule:\"entity_type\", value:j.entity_type, points:etPts, max:10 });\n\n  const pcPts = bandPoints(j.property_count, ICP.property_count_points);\n  breakdown.push({ rule:\"property_count\", value:j.property_count, points:pcPts, max:7 });\n\n  const ecPts = bandPoints(j.employee_count, ICP.employee_count_points);\n  breakdown.push({ rule:\"employee_count\", value:j.employee_count, points:ecPts, max:4 });\n\n  let cxPts = 0;\n  if (j.multi_brand) cxPts += ICP.complexity_points.multi_brand;\n  if (j.multi_region) cxPts += ICP.complexity_points.multi_region;\n  breakdown.push({ rule:\"portfolio_complexity\", value:{multi_brand:j.multi_brand, multi_region:j.multi_region}, points:cxPts, max:4 });\n\n  let icp_score = etPts + pcPts + ecPts + cxPts;\n  if (icp_score > ICP.max_score) icp_score = ICP.max_score;\n\n  if (!j.property_count) reasons.push(\"MISSING_PROPERTY_COUNT\");\n  if (j.entity_type === \"unknown\") reasons.push(\"UNKNOWN_ENTITY_TYPE\");\n\n  j.icp_score = Math.round(icp_score * 10) / 10;\n  j.icp_breakdown = breakdown;\n  j.icp_qualified = icp_score >= 10;\n  j.icp_tier = icp_score >= 20 ? \"CORE ICP\" : (icp_score >= 14 ? \"STRONG ICP\" : (icp_score >= 10 ? \"QUALIFIED\" : \"OUT OF ICP\"));\n  j.review_reasons = reasons;\n  j.status = reasons.length ? \"REQUIRES_REVIEW\" : (j.status || \"OK\");\n  return { json: j };\n});\n"
+      },
+      "notes": "5. ICP Scoring",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "n06",
+      "name": "6. Mode = LIVE?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        640,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "n06-c1",
+              "leftValue": "={{ $('2. Load CONFIG').first().json.config.mode }}",
+              "rightValue": "LIVE",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "n07",
+      "name": "7a. Live Research Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        860,
+        180
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('2. Load CONFIG').first().json.config.endpoints.research_webhook }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ company_name: $json.company_name, domain: $json.domain, website: $json.website, industry: $json.industry, property_count: $json.property_count, employee_count: $json.employee_count, location: $json.location, requested_signals: $('2. Load CONFIG').first().json.config.signal_library.map(s => s.signal_name), max_age_days: $('2. Load CONFIG').first().json.config.ignore_signals_older_than_days }) }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "notes": "Replace CLAY_WEBHOOK_URL_REQUIRED in node 2. Must return { documents: [ { title, url, date, text } ] }.",
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "n08",
+      "name": "7b. Demo Research Bundle",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        860,
+        420
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\nconst CONFIG = $('2. Load CONFIG').first().json.config;\n\nreturn $input.all().map(function(item){\n  const j = item.json;\n  const s = j.seed_signal || {};\n  const docs = [];\n  if (s.title || s.text) {\n    docs.push({\n      title: s.title || \"Untitled public item\",\n      url: s.url || \"\",\n      date: s.date || \"\",\n      text: s.text || \"\",\n      source_type: \"SIMULATED PRESS ITEM\",\n      evidence_label: \"SIMULATED DATA\"\n    });\n  }\n  return { json: {\n    company_key: j.company_key,\n    documents: docs,\n    research_source: \"DEMO_BUNDLE\",\n    research_confidence: docs.length ? 0.7 : 0.1,\n    research_note: \"Demo research bundle. No live web request was made. Labelled SIMULATED DATA.\"\n  }};\n});\n"
+      },
+      "notes": "7b. Demo Research Bundle",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "n09",
+      "name": "8. Merge Research",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        1080,
+        300
+      ],
+      "parameters": {
+        "mode": "append",
+        "numberInputs": 2,
+        "options": {}
+      }
+    },
+    {
+      "id": "n10",
+      "name": "9. Signal Extraction",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\nconst CONFIG = $('2. Load CONFIG').first().json.config;\nconst LIB = CONFIG.signal_library;\nconst base = $('5. ICP Scoring').all();\nconst research = $input.all();\n\nfunction matchDocs(docs){\n  const found = [];\n  for (const doc of docs) {\n    const hay = ((doc.title||\"\") + \" \" + (doc.text||\"\")).toLowerCase();\n    if (!hay.trim()) continue;\n    for (const sig of LIB) {\n      const hits = sig.keywords.filter(function(k){ return hay.indexOf(String(k).toLowerCase()) !== -1; });\n      if (!hits.length) continue;\n      found.push({\n        signal_name: sig.signal_name,\n        signal_category: sig.signal_category,\n        description: sig.description,\n        why_it_matters: sig.why_it_matters,\n        matched_keywords: hits,\n        source_url: doc.url || \"\",\n        source_title: doc.title || \"\",\n        source_date: doc.date || \"\",\n        source_type: doc.source_type || \"PUBLIC WEB ITEM\",\n        evidence_label: doc.evidence_label || \"PUBLIC FACT\",\n        evidence_text: String(doc.text||\"\").slice(0,400),\n        extraction_confidence: Math.min(1, 0.5 + (0.12 * hits.length))\n      });\n    }\n  }\n  const seen = {};\n  return found.filter(function(f){\n    const k = f.signal_name + \"|\" + f.source_url;\n    if (seen[k]) return false;\n    seen[k] = true;\n    return true;\n  });\n}\n\nconst out = [];\nfor (let i = 0; i < base.length; i++) {\n  const acct = JSON.parse(JSON.stringify(base[i].json));\n  const reasons = Array.isArray(acct.review_reasons) ? acct.review_reasons.slice() : [];\n  const r = research[i] ? research[i].json : {};\n\n  let docs = [];\n  let researchConfidence = 0.5;\n  let researchSource = \"UNKNOWN\";\n\n  if (r && r.error) {\n    reasons.push(\"RESEARCH_REQUEST_FAILED\");\n    researchConfidence = 0.1;\n  } else {\n    if (Array.isArray(r.documents)) docs = r.documents;\n    else if (r.body && Array.isArray(r.body.documents)) docs = r.body.documents;\n    else if (Array.isArray(r.results)) docs = r.results;\n    researchSource = r.research_source || \"LIVE_RESEARCH_ENDPOINT\";\n    researchConfidence = typeof r.research_confidence === \"number\" ? r.research_confidence : (docs.length ? 0.6 : 0.15);\n  }\n\n  if (!docs.length) reasons.push(\"NO_RESEARCH_DOCUMENTS\");\n\n  const raw = matchDocs(docs);\n  if (!raw.length && docs.length) reasons.push(\"NO_SIGNAL_KEYWORDS_MATCHED\");\n\n  acct.research_source = researchSource;\n  acct.research_confidence = researchConfidence;\n  acct.documents_reviewed = docs.length;\n  acct.raw_signals = raw;\n  acct.review_reasons = reasons;\n  acct.status = reasons.length ? \"REQUIRES_REVIEW\" : \"OK\";\n  out.push({ json: acct });\n}\nreturn out;\n"
+      },
+      "notes": "9. Signal Extraction",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "n11",
+      "name": "10. Signal Validation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\nconst CONFIG = $('2. Load CONFIG').first().json.config;\nconst MAX_AGE = CONFIG.ignore_signals_older_than_days;\nconst today = new Date();\n\nreturn $input.all().map(function(item){\n  const j = JSON.parse(JSON.stringify(item.json));\n  const reasons = Array.isArray(j.review_reasons) ? j.review_reasons.slice() : [];\n  const valid = [];\n  const rejected = [];\n\n  for (const s of (j.raw_signals || [])) {\n    const problems = [];\n    if (!s.source_url || String(s.source_url).indexOf(\"http\") !== 0) problems.push(\"NO_SOURCE_URL\");\n    if (!s.source_title) problems.push(\"NO_SOURCE_TITLE\");\n    if (!s.evidence_text || s.evidence_text.length < 25) problems.push(\"INSUFFICIENT_EVIDENCE_TEXT\");\n\n    const d = new Date(s.source_date);\n    let age = null;\n    if (!s.source_date || isNaN(d.getTime())) problems.push(\"NO_VALID_SOURCE_DATE\");\n    else {\n      age = Math.floor((today.getTime() - d.getTime()) / 86400000);\n      if (age < 0) problems.push(\"FUTURE_DATED_SOURCE\");\n      if (age > MAX_AGE) problems.push(\"SIGNAL_OLDER_THAN_MAX_AGE\");\n    }\n\n    const copy = Object.assign({}, s, { age_days: age, validation_problems: problems });\n    if (problems.length) rejected.push(copy); else valid.push(copy);\n  }\n\n  const seen = {};\n  const deduped = valid.filter(function(s){\n    const k = j.company_key + \"|\" + s.signal_name;\n    if (seen[k]) return false;\n    seen[k] = true;\n    return true;\n  });\n\n  if (!deduped.length) reasons.push(\"NO_VALIDATED_SIGNALS\");\n  if (rejected.length) reasons.push(\"SOME_SIGNALS_REJECTED\");\n\n  j.signals_validated = deduped;\n  j.signals_rejected = rejected;\n  j.signal_count = deduped.length;\n  j.review_reasons = reasons;\n  j.status = deduped.length ? (j.status === \"REQUIRES_REVIEW\" ? \"REQUIRES_REVIEW\" : \"OK\") : \"REQUIRES_REVIEW\";\n  return { json: j };\n});\n"
+      },
+      "notes": "10. Signal Validation",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "n12",
+      "name": "11. Signal Scoring + Freshness",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1740,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\nconst CONFIG = $('2. Load CONFIG').first().json.config;\nconst LIB = {};\nCONFIG.signal_library.forEach(function(s){ LIB[s.signal_name] = s; });\n\nfunction freshness(age){\n  for (const b of CONFIG.freshness_bands) { if (age <= b.max_age_days) return b; }\n  return CONFIG.freshness_bands[CONFIG.freshness_bands.length - 1];\n}\n\nreturn $input.all().map(function(item){\n  const j = JSON.parse(JSON.stringify(item.json));\n  const scored = (j.signals_validated || []).map(function(s){\n    const meta = LIB[s.signal_name] || { signal_strength:1, scoring_weight:1, recommended_sales_play:\"Re-engagement\", recommended_persona:\"VP Operations\", freshness_requirement_days:180 };\n    const band = freshness(s.age_days === null ? 99999 : s.age_days);\n    const weighted = (meta.signal_strength / 5) * meta.scoring_weight * band.multiplier;\n    return Object.assign({}, s, {\n      signal_strength: meta.signal_strength,\n      scoring_weight: meta.scoring_weight,\n      recommended_sales_play: meta.recommended_sales_play,\n      recommended_persona: meta.recommended_persona,\n      freshness_requirement_days: meta.freshness_requirement_days,\n      freshness_band: band.label,\n      freshness_multiplier: band.multiplier,\n      freshness_points: band.points,\n      within_freshness_requirement: (s.age_days !== null && s.age_days <= meta.freshness_requirement_days),\n      weighted_signal_score: Math.round(weighted * 100) / 100\n    });\n  }).sort(function(a,b){ return b.weighted_signal_score - a.weighted_signal_score; });\n\n  j.signals_scored = scored;\n  j.strongest_signal = scored.length ? scored[0].signal_name : \"\";\n  j.strongest_signal_object = scored.length ? scored[0] : null;\n  j.max_signal_strength = scored.length ? scored[0].signal_strength : 0;\n  j.best_freshness_points = scored.length ? Math.max.apply(null, scored.map(function(s){ return s.freshness_points; })) : 0;\n  j.best_freshness_band = scored.length ? scored[0].freshness_band : \"NONE\";\n  j.signal_categories = scored.map(function(s){ return s.signal_category; }).filter(function(v,i,a){ return a.indexOf(v) === i; });\n  return { json: j };\n});\n"
+      },
+      "notes": "11. Signal Scoring + Freshness",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "n13",
+      "name": "12. Potential Product Fit",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1960,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\nconst CONFIG = $('2. Load CONFIG').first().json.config;\n\nreturn $input.all().map(function(item){\n  const j = JSON.parse(JSON.stringify(item.json));\n  const names = (j.signals_scored || []).map(function(s){ return s.signal_name; });\n  const fits = [];\n\n  for (const p of CONFIG.products) {\n    const matched = p.signal_map.filter(function(sn){ return names.indexOf(sn) !== -1; });\n    if (!matched.length) continue;\n    fits.push({\n      label: \"POTENTIAL PRODUCT FIT\",\n      product: p.product,\n      capability: p.capability,\n      matched_signals: matched,\n      fit_basis: \"Signal-to-capability mapping in CONFIG. This is an AI HYPOTHESIS, not a verified customer need.\"\n    });\n  }\n\n  fits.sort(function(a,b){ return b.matched_signals.length - a.matched_signals.length; });\n  j.potential_product_fit = fits;\n  j.potential_actabl_fit = fits.map(function(f){ return f.product; });\n  j.product_fit_count = fits.length;\n  if (!fits.length && (j.signals_scored || []).length) {\n    j.review_reasons = (j.review_reasons || []).concat([\"NO_PRODUCT_FIT_MAPPED\"]);\n  }\n  return { json: j };\n});\n"
+      },
+      "notes": "12. Potential Product Fit",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "n14",
+      "name": "13. Deterministic Analyst",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2180,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\nconst CONFIG = $('2. Load CONFIG').first().json.config;\nconst PLAYS = {};\nCONFIG.sales_plays.forEach(function(p){ PLAYS[p.play_name] = p; });\n\nfunction limitWords(t, max){\n  const w = String(t||\"\").trim().split(/\\s+/).filter(Boolean);\n  return w.length <= max ? w.join(\" \") : w.slice(0, max).join(\" \");\n}\n\nreturn $input.all().map(function(item){\n  const j = JSON.parse(JSON.stringify(item.json));\n  const top = j.strongest_signal_object;\n  const fits = j.potential_actabl_fit || [];\n\n  let persona = \"VP Operations\";\n  let play = \"Re-engagement\";\n  let problem = \"No validated public signal was detected, so no business problem hypothesis is proposed.\";\n  let whyNow = \"No validated public signal within the freshness window.\";\n  let evidence = [];\n  let confidence = 0.2;\n\n  if (top) {\n    persona = CONFIG.persona_map[top.signal_name] || top.recommended_persona || \"VP Operations\";\n    play = top.recommended_sales_play || \"Operational Scaling\";\n    problem = \"HYPOTHESIS: Public evidence suggests that \" + (CONFIG.problem_map[top.signal_name] || \"the observed change may create new operational or reporting requirements\") + \".\";\n    whyNow = \"FACT: \" + top.source_title + \" (\" + top.source_date + \", \" + top.evidence_label + \"). HYPOTHESIS: the signal is \" + top.age_days + \" days old and falls in the \" + top.freshness_band + \" freshness band, so the operational question it raises is likely still open.\";\n    evidence = (j.signals_scored || []).map(function(s){\n      return { source_url:s.source_url, source_title:s.source_title, source_date:s.source_date,\n               evidence_text:s.evidence_text, signal_type:s.signal_name, evidence_label:s.evidence_label,\n               confidence: s.extraction_confidence };\n    });\n    const evQuality = evidence.length ? (evidence.reduce(function(a,e){ return a + (e.confidence||0); },0) / evidence.length) : 0;\n    confidence = Math.round(Math.min(0.95, (0.4*evQuality) + (0.3*(j.research_confidence||0)) + (0.3*(top.freshness_multiplier||0))) * 100) / 100;\n  }\n\n  const playDef = PLAYS[play] || PLAYS[\"Re-engagement\"];\n  const fitPhrase = fits.length ? fits.slice(0,2).join(\" and \") : \"Actabl capabilities\";\n\n  let angle = \"\";\n  if (top) {\n    angle = \"Public item (\" + top.source_date + \"): \" + limitWords(top.source_title, 16) + \". For operators at \" +\n      (j.property_count || \"multiple\") + \" properties, \" + (CONFIG.problem_map[top.signal_name] || \"this often raises new reporting questions\") +\n      \". \" + fitPhrase + \" are used by hospitality operators for this. Worth a 15-minute look at how comparable portfolios handle it?\";\n    angle = limitWords(angle, CONFIG.outreach.max_words);\n  } else {\n    angle = \"No validated public signal. No outreach recommended until a signal appears.\";\n  }\n\n  const analysis = {\n    company_name: j.company_name,\n    company_website: j.website,\n    icp_score: j.icp_score,\n    signals: (j.signals_scored || []).map(function(s){ return s.signal_name; }),\n    strongest_signal: j.strongest_signal || \"\",\n    why_now: whyNow,\n    business_problem_hypothesis: problem,\n    potential_actabl_fit: fits,\n    recommended_persona: persona,\n    recommended_sales_play: play,\n    personalization_angle: angle,\n    recommended_next_action: playDef ? playDef.next_action : \"Monitor only.\",\n    evidence: evidence,\n    confidence: confidence\n  };\n\n  j.analysis = analysis;\n  j.analysis_source = \"RULE_BASED_BASELINE\";\n  j.ai_payload = {\n    company_name: j.company_name, company_website: j.website, industry: j.industry,\n    entity_type: j.entity_type, employee_count: j.employee_count, property_count: j.property_count,\n    location: j.location, icp_score: j.icp_score, icp_breakdown: j.icp_breakdown,\n    data_label: j.data_label,\n    signals: (j.signals_scored || []).map(function(s){\n      return { signal_name:s.signal_name, signal_category:s.signal_category, why_it_matters:s.why_it_matters,\n               source_url:s.source_url, source_title:s.source_title, source_date:s.source_date,\n               age_days:s.age_days, freshness_band:s.freshness_band, evidence_text:s.evidence_text,\n               evidence_label:s.evidence_label };\n    }),\n    potential_product_fit: j.potential_product_fit,\n    allowed_personas: CONFIG.personas,\n    allowed_sales_plays: CONFIG.sales_plays.map(function(p){ return p.play_name; }),\n    baseline_analysis: analysis\n  };\n  return { json: j };\n});\n"
+      },
+      "notes": "13. Deterministic Analyst",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "n15",
+      "name": "14. AI Agent Enabled?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2400,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "n15-c1",
+              "leftValue": "={{ String($('2. Load CONFIG').first().json.config.ai_enabled) }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "n16",
+      "name": "15a. AI Research Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2620,
+        180
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('2. Load CONFIG').first().json.config.ai.endpoint }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $('2. Load CONFIG').first().json.config.ai.model, temperature: $('2. Load CONFIG').first().json.config.ai.temperature, response_format: { type: 'json_object' }, messages: [ { role: 'system', content: $('2. Load CONFIG').first().json.config.ai.system_prompt }, { role: 'user', content: JSON.stringify($json.ai_payload) } ] }) }}",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "notes": "OPENAI_CREDENTIAL_REQUIRED: create an n8n Header Auth credential named e.g. 'LLM Header Auth' with Name=Authorization, Value=Bearer <your key>, then select it here. No credential is shipped with this workflow.",
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "n17",
+      "name": "15b. Skip AI (Baseline Only)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2620,
+        420
+      ],
+      "parameters": {},
+      "notes": "AI disabled: deterministic baseline analysis is used."
+    },
+    {
+      "id": "n18",
+      "name": "16. Merge Analysis",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        2840,
+        300
+      ],
+      "parameters": {
+        "mode": "append",
+        "numberInputs": 2,
+        "options": {}
+      }
+    },
+    {
+      "id": "n19",
+      "name": "17. Parse + Validate AI Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3060,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\nconst CONFIG = $('2. Load CONFIG').first().json.config;\nconst base = $('13. Deterministic Analyst').all();\nconst incoming = $input.all();\nconst PLAY_NAMES = CONFIG.sales_plays.map(function(p){ return p.play_name; });\n\nfunction stripBanned(t){\n  let s = String(t||\"\");\n  CONFIG.outreach.banned_phrases.forEach(function(p){\n    s = s.replace(new RegExp(p.replace(/[.*+?^${}()|[\\]\\\\]/g, \"\\\\$&\"), \"gi\"), \"\");\n  });\n  s = s.replace(/needs? Actabl/gi, \"may be worth investigating for a potential Actabl fit\");\n  return s.replace(/\\s+/g,\" \").replace(/^[\\s,;.-]+/,\"\").trim();\n}\nfunction limitWords(t, max){\n  const w = String(t||\"\").trim().split(/\\s+/).filter(Boolean);\n  return w.length <= max ? w.join(\" \") : w.slice(0, max).join(\" \");\n}\n\nconst out = [];\nfor (let i = 0; i < base.length; i++) {\n  const j = JSON.parse(JSON.stringify(base[i].json));\n  const reasons = Array.isArray(j.review_reasons) ? j.review_reasons.slice() : [];\n  const resp = incoming[i] ? incoming[i].json : {};\n  let source = \"RULE_BASED_BASELINE\";\n  const analysis = Object.assign({}, j.analysis);\n\n  if (resp && resp.error) {\n    reasons.push(\"AI_REQUEST_FAILED\");\n  } else if (resp && resp.choices && resp.choices[0] && resp.choices[0].message) {\n    try {\n      let raw = String(resp.choices[0].message.content || \"\").trim();\n      raw = raw.replace(/^```json/i,\"\").replace(/^```/,\"\").replace(/```$/,\"\").trim();\n      const parsed = JSON.parse(raw);\n      const required = [\"company_name\",\"company_website\",\"icp_score\",\"signals\",\"strongest_signal\",\"why_now\",\n        \"business_problem_hypothesis\",\"potential_actabl_fit\",\"recommended_persona\",\"recommended_sales_play\",\n        \"personalization_angle\",\"recommended_next_action\",\"evidence\",\"confidence\"];\n      const missing = required.filter(function(k){ return parsed[k] === undefined; });\n      if (missing.length) {\n        reasons.push(\"AI_RESPONSE_MISSING_KEYS:\" + missing.join(\",\"));\n      } else {\n        if (typeof parsed.why_now === \"string\" && parsed.why_now.length > 10) analysis.why_now = stripBanned(parsed.why_now);\n        if (typeof parsed.business_problem_hypothesis === \"string\" && parsed.business_problem_hypothesis.length > 10) analysis.business_problem_hypothesis = stripBanned(parsed.business_problem_hypothesis);\n        if (typeof parsed.personalization_angle === \"string\" && parsed.personalization_angle.length > 10) analysis.personalization_angle = limitWords(stripBanned(parsed.personalization_angle), CONFIG.outreach.max_words);\n        if (typeof parsed.recommended_next_action === \"string\" && parsed.recommended_next_action.length > 5) analysis.recommended_next_action = stripBanned(parsed.recommended_next_action);\n        if (CONFIG.personas.indexOf(parsed.recommended_persona) !== -1) analysis.recommended_persona = parsed.recommended_persona;\n        else reasons.push(\"AI_PERSONA_OUT_OF_LIST\");\n        if (PLAY_NAMES.indexOf(parsed.recommended_sales_play) !== -1) analysis.recommended_sales_play = parsed.recommended_sales_play;\n        else reasons.push(\"AI_PLAY_OUT_OF_LIST\");\n        if (Array.isArray(parsed.potential_actabl_fit)) {\n          const allowed = parsed.potential_actabl_fit.filter(function(p){ return (j.potential_actabl_fit||[]).indexOf(p) !== -1; });\n          if (allowed.length) analysis.potential_actabl_fit = allowed;\n        }\n        if (typeof parsed.confidence === \"number\" && parsed.confidence >= 0 && parsed.confidence <= 1) analysis.confidence = parsed.confidence;\n        source = \"LLM_VALIDATED\";\n      }\n    } catch (e) {\n      reasons.push(\"AI_RESPONSE_MALFORMED\");\n    }\n  }\n\n  analysis.company_name = j.company_name;\n  analysis.company_website = j.website;\n  analysis.icp_score = j.icp_score;\n  analysis.evidence = j.analysis.evidence;\n\n  j.analysis = analysis;\n  j.analysis_source = source;\n  j.review_reasons = reasons;\n  if (reasons.length && j.status !== \"REQUIRES_REVIEW\") j.status = \"REQUIRES_REVIEW\";\n  out.push({ json: j });\n}\nreturn out;\n"
+      },
+      "notes": "17. Parse + Validate AI Output",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "n20",
+      "name": "18. Opportunity Scoring",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3280,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\nconst CONFIG = $('2. Load CONFIG').first().json.config;\nconst W = CONFIG.scoring_weights;\nconst EXPANSION_SIGNALS = [\"ACQUISITION\",\"PORTFOLIO_EXPANSION\",\"NEW_PROPERTY_OPENING\",\"RAPID_GROWTH\",\"OPERATIONAL_EXPANSION\"];\n\nfunction r1(n){ return Math.round(n * 10) / 10; }\n\nreturn $input.all().map(function(item){\n  const j = JSON.parse(JSON.stringify(item.json));\n  const scored = j.signals_scored || [];\n  const b = {};\n\n  b.icp_fit = r1(Math.min(W.icp_fit, j.icp_score || 0));\n\n  const maxStrength = scored.length ? Math.max.apply(null, scored.map(function(s){ return s.signal_strength; })) : 0;\n  const multiBonus = Math.min(3, Math.max(0, (scored.length - 1) * 1.5));\n  b.signal_strength = r1(Math.min(W.signal_strength, ((maxStrength / 5) * 17) + multiBonus));\n\n  b.signal_freshness = r1(Math.min(W.signal_freshness, j.best_freshness_points || 0));\n\n  const nFit = j.product_fit_count || 0;\n  const fitTable = [0, 6, 9, 12, 15];\n  b.product_fit = r1(fitTable[Math.min(nFit, 4)]);\n\n  let expansion = 0;\n  const pc = j.property_count || 0;\n  if (pc >= 50) expansion += 6; else if (pc >= 20) expansion += 5; else if (pc >= 10) expansion += 4; else if (pc >= 5) expansion += 3; else if (pc >= 2) expansion += 1;\n  const hasExp = scored.some(function(s){ return EXPANSION_SIGNALS.indexOf(s.signal_name) !== -1; });\n  if (hasExp) expansion += 4;\n  b.expansion_potential = r1(Math.min(W.expansion_potential, expansion));\n\n  const personaDerived = j.analysis && j.analysis.recommended_persona && j.strongest_signal &&\n    CONFIG.persona_map[j.strongest_signal] !== undefined;\n  b.persona_relevance = personaDerived ? W.persona_relevance : 2;\n\n  const ev = (j.analysis && j.analysis.evidence) || [];\n  let evQ = 0;\n  if (ev.length) {\n    evQ = ev.reduce(function(a, e){\n      let q = 0;\n      if (e.source_url) q += 0.4;\n      if (e.source_date) q += 0.3;\n      if (e.evidence_text && e.evidence_text.length >= 60) q += 0.3;\n      return a + q;\n    }, 0) / ev.length;\n  }\n  b.evidence_quality = r1(W.evidence_quality * evQ);\n\n  const conf = (j.analysis && typeof j.analysis.confidence === \"number\") ? j.analysis.confidence : 0;\n  b.research_confidence = r1(W.research_confidence * conf);\n\n  const total = Object.keys(b).reduce(function(a, k){ return a + b[k]; }, 0);\n  const score = Math.round(Math.max(0, Math.min(100, total)));\n\n  let priority = \"LOW PRIORITY\";\n  for (const band of CONFIG.priority_bands) { if (score >= band.min) { priority = band.label; break; } }\n\n  j.opportunity_score = score;\n  j.opportunity_score_breakdown = b;\n  j.opportunity_score_formula = \"icp_fit(25) + signal_strength(20) + signal_freshness(15) + product_fit(15) + expansion_potential(10) + persona_relevance(5) + evidence_quality(5) + research_confidence(5)\";\n  j.priority = priority;\n  j.priority_note = CONFIG.priority_note;\n  return { json: j };\n});\n"
+      },
+      "notes": "18. Opportunity Scoring",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "n21",
+      "name": "19. Persona Selection",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3500,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\nconst CONFIG = $('2. Load CONFIG').first().json.config;\n\nreturn $input.all().map(function(item){\n  const j = JSON.parse(JSON.stringify(item.json));\n  const votes = {};\n  (j.signals_scored || []).forEach(function(s){\n    const p = CONFIG.persona_map[s.signal_name] || s.recommended_persona;\n    if (!p) return;\n    votes[p] = (votes[p] || 0) + s.weighted_signal_score;\n  });\n\n  const ranked = Object.keys(votes).map(function(p){ return { persona:p, weight: Math.round(votes[p]*100)/100 }; })\n    .sort(function(a,b){ return b.weight - a.weight; });\n\n  let chosen = ranked.length ? ranked[0].persona : \"VP Operations\";\n  if (j.analysis && CONFIG.personas.indexOf(j.analysis.recommended_persona) !== -1 && ranked.length && j.analysis.recommended_persona !== chosen) {\n    const agreed = ranked.some(function(r){ return r.persona === j.analysis.recommended_persona; });\n    if (agreed) chosen = j.analysis.recommended_persona;\n  }\n\n  if (j.property_count >= 40 && chosen === \"Property Operations leadership\") chosen = \"VP Operations\";\n\n  j.recommended_persona = chosen;\n  j.persona_ranking = ranked;\n  j.persona_rationale = ranked.length\n    ? (\"Selected from the strongest weighted signal category (\" + (j.strongest_signal || \"n/a\") + \"), not defaulted to CEO.\")\n    : \"No validated signals; default operations persona assigned for monitoring only.\";\n  j.secondary_personas = ranked.slice(1, 3).map(function(r){ return r.persona; });\n  if (j.analysis) j.analysis.recommended_persona = chosen;\n  return { json: j };\n});\n"
+      },
+      "notes": "19. Persona Selection",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "n22",
+      "name": "20. Sales Play Selection",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3720,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\nconst CONFIG = $('2. Load CONFIG').first().json.config;\nconst PLAYS = {};\nCONFIG.sales_plays.forEach(function(p){ PLAYS[p.play_name] = p; });\n\nreturn $input.all().map(function(item){\n  const j = JSON.parse(JSON.stringify(item.json));\n  const top = j.strongest_signal_object;\n  let playName = top ? (top.recommended_sales_play || \"Operational Scaling\") : \"Re-engagement\";\n\n  if (j.analysis && PLAYS[j.analysis.recommended_sales_play] && top) playName = j.analysis.recommended_sales_play;\n\n  const checks = [];\n  if (top) {\n    checks.push({ rule:\"icp_score >= 10\", passed: (j.icp_score || 0) >= 10 });\n    checks.push({ rule:\"validated signal present\", passed: (j.signal_count || 0) > 0 });\n    checks.push({ rule:\"signal within freshness requirement\", passed: Boolean(top.within_freshness_requirement) });\n    checks.push({ rule:\"evidence has source_url and source_date\", passed: Boolean(top.source_url && top.source_date) });\n    checks.push({ rule:\"at least one potential product fit\", passed: (j.product_fit_count || 0) > 0 });\n  } else {\n    checks.push({ rule:\"validated signal present\", passed:false });\n  }\n\n  const failed = checks.filter(function(c){ return !c.passed; });\n  if (failed.length >= 2) playName = \"Re-engagement\";\n\n  const play = PLAYS[playName] || PLAYS[\"Re-engagement\"];\n  j.sales_play = play.play_name;\n  j.sales_play_definition = play;\n  j.sales_play_qualification = checks;\n  j.sales_play_qualified = failed.length === 0;\n  if (j.analysis) {\n    j.analysis.recommended_sales_play = play.play_name;\n    j.analysis.recommended_next_action = j.analysis.recommended_next_action || play.next_action;\n  }\n  return { json: j };\n});\n"
+      },
+      "notes": "20. Sales Play Selection",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "n23",
+      "name": "21. Outreach Angle",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3940,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\nconst CONFIG = $('2. Load CONFIG').first().json.config;\nconst MAX = CONFIG.outreach.max_words;\n\nfunction words(t){ return String(t||\"\").trim().split(/\\s+/).filter(Boolean); }\nfunction limitWords(t, max){ const w = words(t); return w.length <= max ? w.join(\" \") : w.slice(0, max).join(\" \"); }\nfunction clean(t){\n  let s = String(t||\"\");\n  CONFIG.outreach.banned_phrases.forEach(function(p){\n    s = s.replace(new RegExp(p.replace(/[.*+?^${}()|[\\]\\\\]/g, \"\\\\$&\"), \"gi\"), \"\");\n  });\n  s = s.replace(/needs? Actabl/gi, \"may be worth investigating for a potential Actabl fit\");\n  return s.replace(/\\s{2,}/g,\" \").replace(/^[\\s,;.-]+/,\"\").trim();\n}\n\nreturn $input.all().map(function(item){\n  const j = JSON.parse(JSON.stringify(item.json));\n  const top = j.strongest_signal_object;\n  const play = j.sales_play_definition || {};\n\n  if (!top) {\n    j.personalization_angle = \"NO OUTREACH RECOMMENDED - no validated public signal.\";\n    j.outreach_word_count = 0;\n    j.outreach_structure_check = { observable_signal:false, why_it_may_matter:false, actabl_capability:false, cta:false };\n    if (j.analysis) j.analysis.personalization_angle = j.personalization_angle;\n    return { json: j };\n  }\n\n  const fits = (j.analysis && j.analysis.potential_actabl_fit) || j.potential_actabl_fit || [];\n  const fitPhrase = fits.length ? fits.slice(0,2).join(\" and \") : \"Actabl's hospitality operations and BI tools\";\n  const problem = CONFIG.problem_map[top.signal_name] || \"this often raises new cross-property reporting questions\";\n\n  let angle = \"Public item (\" + top.source_date + \"): \" + limitWords(top.source_title, 14) + \". Across \"\n    + (j.property_count ? (j.property_count + \" properties\") : \"a multi-property portfolio\") + \", \" + problem\n    + \". \" + fitPhrase + \" are used by hospitality operators for exactly that. \" + (play.cta || \"Open to a 15-minute look at how comparable portfolios handle it?\");\n\n  angle = limitWords(clean(angle), MAX);\n\n  j.personalization_angle = angle;\n  j.outreach_word_count = words(angle).length;\n  j.outreach_structure_check = {\n    observable_signal: angle.indexOf(\"Public item\") === 0,\n    why_it_may_matter: angle.toLowerCase().indexOf(\"may\") !== -1 || angle.toLowerCase().indexOf(\"often\") !== -1,\n    actabl_capability: fits.length > 0,\n    cta: angle.indexOf(\"?\") !== -1\n  };\n  j.outreach_guardrails = \"No personal details, no fabricated claims, no product need asserted. Max \" + MAX + \" words.\";\n  if (j.analysis) j.analysis.personalization_angle = angle;\n  return { json: j };\n});\n"
+      },
+      "notes": "21. Outreach Angle",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "n24",
+      "name": "22. Build CRM-Ready Opportunity",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4160,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\nconst CONFIG = $('2. Load CONFIG').first().json.config;\nconst now = new Date().toISOString();\n\nreturn $input.all().map(function(item){\n  const j = JSON.parse(JSON.stringify(item.json));\n  const top = j.strongest_signal_object;\n  const a = j.analysis || {};\n\n  const crm = {\n    Account: j.company_name,\n    Account_Website: j.website,\n    Account_Industry: j.industry,\n    Account_Property_Count: j.property_count,\n    Account_Employee_Count: j.employee_count,\n    Account_Location: j.location,\n    ICP_Score: j.icp_score,\n    ICP_Tier: j.icp_tier,\n    Signal: top ? top.signal_name : \"NONE\",\n    Signal_Date: top ? top.source_date : \"\",\n    Signal_Source: top ? top.source_title : \"\",\n    Signal_Source_URL: top ? top.source_url : \"\",\n    Signal_Type: top ? top.signal_category : \"\",\n    Signal_Strength: top ? top.signal_strength : 0,\n    Signal_Freshness_Band: j.best_freshness_band,\n    All_Signals: (j.signals_scored || []).map(function(s){ return s.signal_name; }).join(\"; \"),\n    Opportunity_Score: j.opportunity_score,\n    Priority: j.priority,\n    Potential_Product: (a.potential_actabl_fit || []).join(\"; \"),\n    Potential_Product_Label: \"POTENTIAL PRODUCT FIT (hypothesis, not a verified customer need)\",\n    Sales_Play: j.sales_play,\n    Persona: j.recommended_persona,\n    Secondary_Personas: (j.secondary_personas || []).join(\"; \"),\n    Why_Now: a.why_now || \"\",\n    Business_Problem_Hypothesis: a.business_problem_hypothesis || \"\",\n    Evidence: (a.evidence || []).map(function(e){ return e.source_title + \" | \" + e.source_url + \" | \" + e.source_date; }).join(\" || \"),\n    Personalization_Angle: j.personalization_angle,\n    Recommended_Action: a.recommended_next_action || \"\",\n    Confidence: a.confidence,\n    Research_Date: j.research_date,\n    Created_At: now,\n    Workflow_Version: CONFIG.workflow_version,\n    Portfolio_Company: CONFIG.portfolio_company,\n    Model_Confidence: a.confidence,\n    Analysis_Source: j.analysis_source,\n    Data_Label: j.data_label,\n    Status: j.status,\n    Review_Reasons: (j.review_reasons || []).join(\"; \"),\n    Dedup_Key: j.company_key + \"|\" + (top ? top.signal_name : \"NONE\"),\n    Salesforce_Mapping_Hint: \"Account -> Account.Name, Signal -> Custom Object Signal__c, Opportunity_Score -> Opportunity_Score__c, Dedup_Key -> External_Id__c (upsert key).\"\n  };\n\n  return { json: {\n    company_name: j.company_name,\n    website: j.website,\n    icp_score: j.icp_score,\n    opportunity_score: j.opportunity_score,\n    priority: j.priority,\n    strongest_signal: j.strongest_signal,\n    signal_count: j.signal_count,\n    signal_categories: j.signal_categories,\n    sales_play: j.sales_play,\n    recommended_persona: j.recommended_persona,\n    potential_actabl_fit: a.potential_actabl_fit || [],\n    personalization_angle: j.personalization_angle,\n    status: j.status,\n    review_reasons: j.review_reasons,\n    data_label: j.data_label,\n    analysis: a,\n    opportunity_score_breakdown: j.opportunity_score_breakdown,\n    icp_breakdown: j.icp_breakdown,\n    signals_scored: j.signals_scored,\n    signals_rejected: j.signals_rejected,\n    potential_product_fit: j.potential_product_fit,\n    sales_play_qualification: j.sales_play_qualification,\n    persona_ranking: j.persona_ranking,\n    outreach_structure_check: j.outreach_structure_check,\n    crm_record: crm,\n    audit: {\n      created_at: now,\n      research_date: j.research_date,\n      workflow_version: CONFIG.workflow_version,\n      portfolio_company: CONFIG.portfolio_company,\n      run_mode: j.run_mode,\n      analysis_source: j.analysis_source,\n      model_confidence: a.confidence,\n      research_source: j.research_source,\n      documents_reviewed: j.documents_reviewed,\n      source_urls: (a.evidence || []).map(function(e){ return e.source_url; })\n    }\n  }};\n});\n"
+      },
+      "notes": "22. Build CRM-Ready Opportunity",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "n25",
+      "name": "23. Push to CRM?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        4380,
+        180
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "n25-c1",
+              "leftValue": "={{ String($('2. Load CONFIG').first().json.config.crm_push_enabled) }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "n26",
+      "name": "24. CRM / Clay Webhook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4600,
+        80
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('2. Load CONFIG').first().json.config.endpoints.crm_webhook }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.crm_record) }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "notes": "Replace CRM_WEBHOOK_URL_REQUIRED in node 2 (Clay webhook, Salesforce/HubSpot middleware, or internal endpoint). Upsert on Dedup_Key.",
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "n27",
+      "name": "25. Aggregate Opportunities",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        4380,
+        420
+      ],
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "opportunities",
+        "options": {}
+      }
+    },
+    {
+      "id": "n28",
+      "name": "26. Revenue Priority Dashboard",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4600,
+        420
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\nconst CONFIG = $('2. Load CONFIG').first().json.config;\nconst rows = ($input.first().json.opportunities) || [];\n\nfunction count(arr, fn){ return arr.filter(fn).length; }\n\nconst withSignals = rows.filter(function(r){ return (r.signal_count || 0) > 0; });\nconst byCategory = {};\nconst byPlay = {};\nconst byPersona = {};\nconst byProduct = {};\n\nrows.forEach(function(r){\n  (r.signals_scored || []).forEach(function(s){\n    byCategory[s.signal_category] = (byCategory[s.signal_category] || 0) + 1;\n  });\n  if (r.signal_count) {\n    byPlay[r.sales_play] = (byPlay[r.sales_play] || 0) + 1;\n    byPersona[r.recommended_persona] = (byPersona[r.recommended_persona] || 0) + 1;\n    (r.potential_actabl_fit || []).forEach(function(p){ byProduct[p] = (byProduct[p] || 0) + 1; });\n  }\n});\n\nconst scores = rows.map(function(r){ return r.opportunity_score || 0; });\nconst avg = scores.length ? Math.round((scores.reduce(function(a,b){ return a+b; },0) / scores.length) * 10) / 10 : 0;\n\nconst table = rows.slice().sort(function(a,b){ return b.opportunity_score - a.opportunity_score; }).map(function(r){\n  const c = r.crm_record || {};\n  return {\n    Company: r.company_name,\n    Website: r.website,\n    ICP_Score: r.icp_score,\n    Signal: c.Signal,\n    Signal_Date: c.Signal_Date,\n    Signal_Strength: c.Signal_Strength,\n    Evidence: c.Signal_Source_URL,\n    Potential_Business_Problem: (r.analysis && r.analysis.business_problem_hypothesis) || \"\",\n    Potential_Actabl_Product: (r.potential_actabl_fit || []).join(\"; \"),\n    Recommended_Persona: r.recommended_persona,\n    Sales_Play: r.sales_play,\n    Opportunity_Score: r.opportunity_score,\n    Priority: r.priority,\n    Why_Now: (r.analysis && r.analysis.why_now) || \"\",\n    Personalization_Angle: r.personalization_angle,\n    Recommended_Next_Action: (r.analysis && r.analysis.recommended_next_action) || \"\",\n    Confidence: (r.analysis && r.analysis.confidence) || 0,\n    Status: r.status,\n    Data_Label: r.data_label\n  };\n});\n\nconst dashboard = {\n  report: \"ASG Revenue Signal Engine - Revenue Priority Dashboard\",\n  portfolio_company: CONFIG.portfolio_company,\n  run_mode: CONFIG.mode,\n  workflow_version: CONFIG.workflow_version,\n  generated_at: new Date().toISOString(),\n  data_label: rows.length ? rows[0].data_label : \"NO DATA\",\n  accounts_analyzed: rows.length,\n  icp_qualified: count(rows, function(r){ return (r.icp_score || 0) >= 10; }),\n  accounts_with_signals: withSignals.length,\n  high_priority: count(rows, function(r){ return r.priority === \"HIGH PRIORITY\"; }),\n  medium_priority: count(rows, function(r){ return r.priority === \"MEDIUM PRIORITY\"; }),\n  watch: count(rows, function(r){ return r.priority === \"WATCH\"; }),\n  low_priority: count(rows, function(r){ return r.priority === \"LOW PRIORITY\"; }),\n  product_fit_opportunities: count(rows, function(r){ return (r.potential_actabl_fit || []).length > 0; }),\n  requires_review: count(rows, function(r){ return r.status === \"REQUIRES_REVIEW\"; }),\n  signals_by_category: byCategory,\n  sales_plays_by_frequency: byPlay,\n  personas_by_frequency: byPersona,\n  potential_product_fit_by_frequency: byProduct,\n  average_opportunity_score: avg,\n  measurement_note: \"This system measures OPPORTUNITIES IDENTIFIED. It does not estimate pipeline, deal size or revenue, and priority labels are not predictions of purchase probability.\",\n  data_use_note: \"Public information and clearly labelled simulated demo data only. No ASG or Actabl private CRM, usage, pricing or customer data is used or implied.\"\n};\n\nreturn [{ json: { dashboard: dashboard, opportunity_table: table, crm_payload: rows.map(function(r){ return r.crm_record; }) } }];\n"
+      },
+      "notes": "26. Revenue Priority Dashboard",
+      "alwaysOutputData": true
+    }
+  ],
+  "connections": {
+    "1. Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "2. Load CONFIG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. Load CONFIG": {
+      "main": [
+        [
+          {
+            "node": "3. Load Accounts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3. Load Accounts": {
+      "main": [
+        [
+          {
+            "node": "4. Normalize + Deduplicate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4. Normalize + Deduplicate": {
+      "main": [
+        [
+          {
+            "node": "5. ICP Scoring",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5. ICP Scoring": {
+      "main": [
+        [
+          {
+            "node": "6. Mode = LIVE?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6. Mode = LIVE?": {
+      "main": [
+        [
+          {
+            "node": "7a. Live Research Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "7b. Demo Research Bundle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7a. Live Research Request": {
+      "main": [
+        [
+          {
+            "node": "8. Merge Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7b. Demo Research Bundle": {
+      "main": [
+        [
+          {
+            "node": "8. Merge Research",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "8. Merge Research": {
+      "main": [
+        [
+          {
+            "node": "9. Signal Extraction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "9. Signal Extraction": {
+      "main": [
+        [
+          {
+            "node": "10. Signal Validation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "10. Signal Validation": {
+      "main": [
+        [
+          {
+            "node": "11. Signal Scoring + Freshness",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "11. Signal Scoring + Freshness": {
+      "main": [
+        [
+          {
+            "node": "12. Potential Product Fit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "12. Potential Product Fit": {
+      "main": [
+        [
+          {
+            "node": "13. Deterministic Analyst",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "13. Deterministic Analyst": {
+      "main": [
+        [
+          {
+            "node": "14. AI Agent Enabled?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "14. AI Agent Enabled?": {
+      "main": [
+        [
+          {
+            "node": "15a. AI Research Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "15b. Skip AI (Baseline Only)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "15a. AI Research Agent": {
+      "main": [
+        [
+          {
+            "node": "16. Merge Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "15b. Skip AI (Baseline Only)": {
+      "main": [
+        [
+          {
+            "node": "16. Merge Analysis",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "16. Merge Analysis": {
+      "main": [
+        [
+          {
+            "node": "17. Parse + Validate AI Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "17. Parse + Validate AI Output": {
+      "main": [
+        [
+          {
+            "node": "18. Opportunity Scoring",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "18. Opportunity Scoring": {
+      "main": [
+        [
+          {
+            "node": "19. Persona Selection",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "19. Persona Selection": {
+      "main": [
+        [
+          {
+            "node": "20. Sales Play Selection",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "20. Sales Play Selection": {
+      "main": [
+        [
+          {
+            "node": "21. Outreach Angle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "21. Outreach Angle": {
+      "main": [
+        [
+          {
+            "node": "22. Build CRM-Ready Opportunity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "22. Build CRM-Ready Opportunity": {
+      "main": [
+        [
+          {
+            "node": "23. Push to CRM?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "25. Aggregate Opportunities",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "23. Push to CRM?": {
+      "main": [
+        [
+          {
+            "node": "24. CRM / Clay Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "25. Aggregate Opportunities": {
+      "main": [
+        [
+          {
+            "node": "26. Revenue Priority Dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "PORTFOLIO_DEMO",
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
